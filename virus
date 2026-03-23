@@ -1,0 +1,83 @@
+import pygame
+import math
+import random
+import win32gui
+import win32con
+
+pygame.init()
+
+# Инициализация музыки
+pygame.mixer.init()
+pygame.mixer.music.load("music.mp3")  # <-- укажи свой файл
+pygame.mixer.music.play(-1)            # -1 = бесконечный цикл
+
+# Размер экрана
+info = pygame.display.Info()
+width, height = info.current_w, info.current_h
+
+# Окно без рамок
+screen = pygame.display.set_mode((width, height), pygame.NOFRAME | pygame.SRCALPHA)
+pygame.display.set_caption("Disco Overlay")
+
+# Получаем HWND окна
+hwnd = pygame.display.get_wm_info()["window"]
+
+# Настройка прозрачного overlay
+styles = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+win32gui.SetWindowLong(
+    hwnd,
+    win32con.GWL_EXSTYLE,
+    styles
+    | win32con.WS_EX_LAYERED
+    | win32con.WS_EX_TOPMOST
+    | win32con.WS_EX_TRANSPARENT
+    | win32con.WS_EX_TOOLWINDOW
+)
+
+# Прозрачность всего окна (0-255)
+win32gui.SetLayeredWindowAttributes(hwnd, 0, 150, win32con.LWA_ALPHA)
+
+# Форсируем обновление окна
+win32gui.SetWindowPos(
+    hwnd,
+    win32con.HWND_TOPMOST,
+    0, 0, 0, 0,
+    win32con.SWP_NOMOVE
+    | win32con.SWP_NOSIZE
+    | win32con.SWP_NOACTIVATE
+    | win32con.SWP_SHOWWINDOW
+)
+
+clock = pygame.time.Clock()
+t = 0
+square_size = 80
+step = 80
+
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                running = False
+
+    # Прозрачный фон
+    screen.fill((0, 0, 0, 0))
+
+    # Рисуем радужные квадраты
+    for x in range(0, width, step):
+        for y in range(0, height, step):
+            r = int((math.sin(t + x * 0.01) + 1) * 127)
+            g = int((math.sin(t + y * 0.01) + 1) * 127)
+            b = int((math.sin(t) + 1) * 127)
+
+            alpha = 100 + random.randint(-20, 20)
+
+            s = pygame.Surface((square_size, square_size), pygame.SRCALPHA)
+            s.fill((r, g, b, alpha))
+            screen.blit(s, (x, y))
+
+    pygame.display.update()
+    t += 0.05
+    clock.tick(60)
+
+pygame.quit()
